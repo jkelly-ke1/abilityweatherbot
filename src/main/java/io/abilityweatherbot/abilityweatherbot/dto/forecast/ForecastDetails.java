@@ -24,6 +24,4 @@ public class ForecastDetails {
     @JsonProperty("pop")
     double rainfallProbability;
 
-
-
 }

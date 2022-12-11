@@ -2,18 +2,17 @@ package io.abilityweatherbot.abilityweatherbot.service;
 
 import io.abilityweatherbot.abilityweatherbot.config.BotConfig;
 import io.abilityweatherbot.abilityweatherbot.dto.MenuStatus;
+import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 import org.telegram.abilitybots.api.bot.AbilityBot;
 import org.telegram.abilitybots.api.objects.Ability;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Predicate;
+import java.util.*;
 
 import static io.abilityweatherbot.abilityweatherbot.dto.MenuStatus.*;
 import static org.telegram.abilitybots.api.objects.Flag.MESSAGE;
@@ -21,29 +20,36 @@ import static org.telegram.abilitybots.api.objects.Locality.ALL;
 import static org.telegram.abilitybots.api.objects.Privacy.PUBLIC;
 
 @Log4j2
-@Component
 @PropertySource("/application.properties")
+@Component
 public class Bot extends AbilityBot {
 
     private final Update update = new Update();
-    private final Map<Long, MenuStatus> userState = new HashMap<>();
-    private final String regexCityPattern = "^[A-Za-z.-]+$";
-    private String entryMessage = "Enter city name\uD83D\uDC47";
+
     private final BotService botService;
     private final MessageHandler messageHandler;
+
+    @Value("${telegram.creator_id}")
+    private long creatorId;
+
+    private final Map<Long, MenuStatus> userState = new HashMap<>();
+
+    // user's recent cities search
+    private final Map<Long, Queue<String>> recentCities = new HashMap<>();
+
+    private static final String entryMessage = "Enter city name\uD83D\uDC47";
+    private static final String regexCityPattern = "^[A-Za-z.-]+$";
 
     @Autowired
     public Bot(BotConfig botConfig, BotService botService, MessageHandler messageHandler) {
         super(botConfig.getBotToken(), botConfig.getBotToken());
-
         this.botService = botService;
         this.messageHandler = messageHandler;
     }
 
-    // TODO: 21.11.2022 handle before push
     @Override
     public long creatorId() {
-        return 0;
+        return this.creatorId;
     }
 
     public Ability start() {
@@ -105,6 +111,19 @@ public class Bot extends AbilityBot {
                 .build();
     }
 
+    public Ability cancel() {
+        return Ability.builder()
+                .name("cancel")
+                .info("cancel current action")
+                .locality(ALL)
+                .privacy(PUBLIC)
+                .action(a -> {
+                    userState.put(a.chatId(), START);
+                    displayWeatherByTimer(update, false, null, 0);
+                })
+                .build();
+    }
+
     public Ability about() {
         return Ability.builder()
                 .name("about")
@@ -122,6 +141,7 @@ public class Bot extends AbilityBot {
                 .build();
     }
 
+    // all non-command messages listener
     public Ability messageListener() {
         return Ability.builder()
                 .name(DEFAULT)
@@ -132,46 +152,58 @@ public class Bot extends AbilityBot {
                 .action(act -> {
                     displayWeather(act.update(), act.update().getMessage().getText(), userState.get(act.chatId()), act.chatId());
                     update.setMessage(act.update().getMessage());
-//                    silent.send(displayWeather(act.update().getMessage().getText(), userState.get(act.chatId())), act.chatId());
-//                    silent.send(messageHandler.sendMessage(act.update(), act.update().getMessage().getText()).toString(), act.chatId());
                 })
                 .build();
     }
 
+    @SneakyThrows
     private void displayWeather(Update update, String cityName, MenuStatus menuStatus, long chatId) {
         if (cityName.matches(regexCityPattern)) {
+            if (!recentCities.containsKey(chatId))
+                recentCities.put(chatId, new PriorityQueue<>(4));
 
-            if(menuStatus == CURRENT_WEATHER)
-                silent.send(botService.displayWeather(update, cityName, false, null).toString(), chatId);
+            if (menuStatus == CURRENT_WEATHER) {
+                recentCities.get(chatId).add(cityName);
+                execute(botService.displayWeather(update, cityName, true, recentCities.get(chatId)));
+            }
 
-            if(menuStatus == FORECAST_WEATHER)
-                silent.send(botService.displayWeatherForecast(update, cityName).toString(), chatId);
+            if (menuStatus == FORECAST_WEATHER) {
+                recentCities.get(chatId).add(cityName);
+                execute(botService.displayWeatherForecast(update, cityName));
+            }
 
-            if (menuStatus == SCHEDULE_WEATHER)
-                silent.send("Not available", chatId);
+            // 1800000ms == 0.5hr, 10800000ms == 3hrs
+            if (menuStatus == SCHEDULE_WEATHER) {
+                displayWeatherByTimer(update, true, cityName, 10800000);
+            }
 
         } else {
-            silent.send("not match to regex", chatId);
+            execute(messageHandler.makeMessage(update, "❌Wrong city name format!"));
         }
     }
 
-    private Predicate<Update> hasMessageWith(String msg) {
-        return upd -> upd.getMessage().getText().matches(regexCityPattern);
+    @SneakyThrows
+    private void displayWeatherByTimer(Update update, boolean isActive, String cityName, long period) {
+        Timer timer = new Timer();
+
+        if (isActive) {
+            TimerTask timerTask = new TimerTask() {
+                @SneakyThrows
+                @Override
+                public void run() {
+                    execute(botService.displayWeather(update, cityName, false, null));
+                }
+            };
+
+            timer.schedule(timerTask, new Date(), period);
+            log.info("Schedule query '{}' in {} chat id was started.",
+                    cityName, update.getMessage().getChatId());
+
+        } else {
+            timer.cancel();
+            execute(messageHandler.makeMessage(update, "✅Schedule is canceled."));
+            log.info("Schedule in chat by id {} was canceled", update.getMessage().getChatId());
+        }
     }
-
-/*
-        public Ability cancel() {
-        return Ability.builder()
-                .name("forecast")
-                .info("weather forecast for 5 days")
-                .locality(ALL)
-                .privacy(PUBLIC)
-                .action(a -> {
-                    silent.send(entryMessage, a.chatId());
-                    userState.put(a.chatId(), FORECAST_WEATHER);
-                })
-                .build();
-    }*/
-
 
 }

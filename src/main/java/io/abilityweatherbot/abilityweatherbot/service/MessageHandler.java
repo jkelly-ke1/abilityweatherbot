@@ -16,7 +16,7 @@ public class MessageHandler {
         var row = new KeyboardRow();
         List<KeyboardRow> keyboard = new ArrayList<>();
 
-        if (queueOfCities.size() > 3)
+        if (queueOfCities.size() > 4)
             queueOfCities.remove();
 
         Set<String> distinctArrayListOfCities = new HashSet<>(queueOfCities);
@@ -30,7 +30,7 @@ public class MessageHandler {
         return markup;
     }
 
-    public SendMessage sendMessage(Update update, String inputMessage) {
+    public SendMessage makeMessage(Update update, String inputMessage) {
         var messageToSend = new SendMessage();
         messageToSend.setChatId(update.getMessage().getChatId());
         messageToSend.setText(inputMessage);

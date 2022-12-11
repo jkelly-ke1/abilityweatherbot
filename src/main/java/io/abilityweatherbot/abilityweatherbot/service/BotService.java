@@ -55,10 +55,10 @@ public class BotService {
         this.messageHandler = messageHandler;
     }
 
-    public String displayWeather(Update update, String cityName, boolean hasRecentCitiesKeyboard, Queue<String> queueOfCities) {
-        var wrongCityMessage = messageHandler.sendMessage(update, "❌There is no city with this name. Try again please");
+    public SendMessage displayWeather(Update update, String cityName, boolean hasRecentCitiesKeyboard, Queue<String> queueOfCities) {
+        var wrongCityMessage = messageHandler.makeMessage(update, "❌There is no city with this name. Try again please");
         var cityUrlQuery = cityUrl + cityName + "&limit=5&appid=";
-//        var message = new SendMessage();
+        var message = new SendMessage();
 
         ResponseEntity<List<CityDto>> cityResponse = restTemplate.exchange(cityUrlQuery + openWeatherConfig.getToken(),
                 HttpMethod.GET, null, new ParameterizedTypeReference<>() {
@@ -80,27 +80,27 @@ public class BotService {
                     weatherDto.getMainInfo().get("humidity"),
                     weatherDto.getWindInfo().get("speed"));
 
-//            if (hasRecentCitiesKeyboard) {
-//                message.setReplyMarkup(messageHandler.recentCitiesMarkup(queueOfCities));
-//            }
-//
-//            message.setChatId(update.getMessage().getChatId().toString());
-//            message.setText("Weather in " + cityName + "\n\n" + messageString);
+            if (hasRecentCitiesKeyboard) {
+                message.setReplyMarkup(messageHandler.recentCitiesMarkup(queueOfCities));
+            }
+
+            message.setChatId(update.getMessage().getChatId().toString());
+            message.setText("Weather in " + cityName + "\n\n" + messageString);
 
             log.info("Single weather query '{}' in {} chat id", cityName, update.getMessage().getChatId());
-            return messageString;
+            return message;
         }
 
         log.info("Error in chat by id {} while querying single weather in '{}' city.",
                 update.getMessage().getChatId(), cityName);
-        return "❌There is no city with this name. Try again please";
+        return wrongCityMessage;
     }
 
+
     public SendMessage displayWeatherForecast(Update update, String cityName) {
-        var wrongCityMessage = messageHandler.sendMessage(update, "❌There is no city with this name. Try again please");
+        var wrongCityMessage = messageHandler.makeMessage(update, "❌There is no city with this name. Try again please");
         var cityUrlQuery = cityUrl + cityName + "&limit=5&appid=";
         var message = new SendMessage();
-
 
         ResponseEntity<List<CityDto>> cityResponse = restTemplate.exchange(cityUrlQuery + openWeatherConfig.getToken(),
                 HttpMethod.GET, null, new ParameterizedTypeReference<>() {
@@ -116,37 +116,39 @@ public class BotService {
                     cityDtoList.get(0).getLat() + "&lon=" + cityDtoList.get(0).getLon() +
                     "&appid=" + openWeatherConfig.getToken() + "&units=metric", ForecastDto.class);
 
-            List<ForecastDetails> forecastDetailsList = forecastDto.getForecastDetailsList();
+            if (forecastDto != null) {
+                List<ForecastDetails> forecastDetailsList = forecastDto.getForecastDetailsList();
 
-            var messageStringBuilder = new StringBuilder();
+                var messageStringBuilder = new StringBuilder();
 
-            for (ForecastDetails forecastDetails : forecastDetailsList) {
-                if (converter.dateConverter(forecastDetails.getDt(), "HH:mm").equals("12:00")) {
-                    messageStringBuilder
-                            .append("\uD83D\uDCC6 ")
-                            .append(converter.dateConverter(forecastDetails.getDt(), "dd.MM"))
-                            .append("\n")
-                            .append(converter.stringToEmojiConverter(forecastDetails.getWeather().get(0).get("main").toString()))
-                            .append(" ")
-                            .append(decimalFormat.format(forecastDetails.getMain().get("temp"))).append("°C,")
-                            .append(" ")
-                            .append(forecastDetails.getWeather().get(0).get("description")).append(". ")
-                            .append("\n")
-                            .append("☂").append(" Rainfall probability: ").append(converter.rainProbabilityConverter(forecastDetails.getRainfallProbability()))
-                            .append("\n")
-                            .append("\uD83D\uDCA7").append(" Humidity: ").append(forecastDetails.getMain().get("humidity")).append("%.")
-                            .append("\n")
-                            .append("\uD83D\uDCA8").append(" Wind speed: ").append(forecastDetails.getWind().get("speed")).append("m/s")
-                            .append("\n\n");
+                for (ForecastDetails forecastDetails : forecastDetailsList) {
+                    if (converter.dateConverter(forecastDetails.getDt(), "HH:mm").equals("14:00")) {
+                        messageStringBuilder
+                                .append("\uD83D\uDCC6 ")
+                                .append(converter.dateConverter(forecastDetails.getDt(), "dd.MM"))
+                                .append("\n")
+                                .append(converter.stringToEmojiConverter(forecastDetails.getWeather().get(0).get("main").toString()))
+                                .append(" ")
+                                .append(decimalFormat.format(forecastDetails.getMain().get("temp"))).append("°C,")
+                                .append(" ")
+                                .append(forecastDetails.getWeather().get(0).get("description")).append(". ")
+                                .append("\n")
+                                .append("☂").append(" Rainfall probability: ").append(converter.rainProbabilityConverter(forecastDetails.getRainfallProbability()))
+                                .append("\n")
+                                .append("\uD83D\uDCA7").append(" Humidity: ").append(forecastDetails.getMain().get("humidity")).append("%.")
+                                .append("\n")
+                                .append("\uD83D\uDCA8").append(" Wind speed: ").append(forecastDetails.getWind().get("speed")).append("m/s")
+                                .append("\n\n");
 
-                    message.setChatId(update.getMessage().getChatId().toString());
-                    message.setText("Forecast for " + cityName + " at 12:00: " + "\n\n" + messageStringBuilder);
+                        message.setChatId(update.getMessage().getChatId().toString());
+                        message.setText("Forecast for " + cityName + " at 14:00: " + "\n\n" + messageStringBuilder);
 
+                    }
                 }
-            }
 
-            log.info("Weather forecast query '{}' in {} chat id.", cityName, update.getMessage().getChatId());
-            return message;
+                log.info("Weather forecast query '{}' in {} chat id.", cityName, update.getMessage().getChatId());
+                return message;
+            }
         }
 
         log.info("Error in chat by id {} while querying forecast in '{}' city.", update.getMessage().getChatId(), cityName);
