@@ -32,10 +32,12 @@ public class Bot extends AbilityBot {
     @Value("${telegram.creator_id}")
     private long creatorId;
 
-    private final Map<Long, MenuStatus> userState = new HashMap<>();
+    private final Map<Long, MenuStatus> userMenuState = new HashMap<>();
 
-    // user's recent cities search
+    // contains recent cities searches for each user
     private final Map<Long, Queue<String>> recentCities = new HashMap<>();
+
+    private final Map<Long, Timer> userScheduleTimerMap = new HashMap<>();
 
     private static final String entryMessage = "Enter city name\uD83D\uDC47";
     private static final String regexCityPattern = "^[A-Za-z.-]+$";
@@ -66,8 +68,8 @@ public class Bot extends AbilityBot {
                             There are another features too! 
                             Just press menu button 👇 
                             """, a.chatId());
-                    userState.put(a.chatId(), START);
-                    System.out.println(userState.toString());
+                    userMenuState.put(a.chatId(), START);
+                    System.out.println(userMenuState.toString());
                 })
                 .build();
     }
@@ -80,7 +82,7 @@ public class Bot extends AbilityBot {
                 .privacy(PUBLIC)
                 .action(a -> {
                     silent.send(entryMessage, a.chatId());
-                    userState.put(a.chatId(), CURRENT_WEATHER);
+                    userMenuState.put(a.chatId(), CURRENT_WEATHER);
                 })
                 .build();
     }
@@ -93,7 +95,7 @@ public class Bot extends AbilityBot {
                 .privacy(PUBLIC)
                 .action(a -> {
                     silent.send(entryMessage, a.chatId());
-                    userState.put(a.chatId(), SCHEDULE_WEATHER);
+                    userMenuState.put(a.chatId(), SCHEDULE_WEATHER);
                 })
                 .build();
     }
@@ -106,7 +108,7 @@ public class Bot extends AbilityBot {
                 .privacy(PUBLIC)
                 .action(a -> {
                     silent.send(entryMessage, a.chatId());
-                    userState.put(a.chatId(), FORECAST_WEATHER);
+                    userMenuState.put(a.chatId(), FORECAST_WEATHER);
                 })
                 .build();
     }
@@ -117,10 +119,7 @@ public class Bot extends AbilityBot {
                 .info("cancel current action")
                 .locality(ALL)
                 .privacy(PUBLIC)
-                .action(a -> {
-                    userState.put(a.chatId(), START);
-                    displayWeatherByTimer(update, false, null, 0);
-                })
+                .action(a -> displayWeatherByTimer(update, false, null, 0))
                 .build();
     }
 
@@ -150,14 +149,14 @@ public class Bot extends AbilityBot {
                 .locality(ALL)
                 .input(0)
                 .action(act -> {
-                    displayWeather(act.update(), act.update().getMessage().getText(), userState.get(act.chatId()), act.chatId());
+                    menuHandler(act.update(), act.update().getMessage().getText(), userMenuState.get(act.chatId()), act.chatId());
                     update.setMessage(act.update().getMessage());
                 })
                 .build();
     }
 
     @SneakyThrows
-    private void displayWeather(Update update, String cityName, MenuStatus menuStatus, long chatId) {
+    private void menuHandler(Update update, String cityName, MenuStatus menuStatus, long chatId) {
         if (cityName.matches(regexCityPattern)) {
             if (!recentCities.containsKey(chatId))
                 recentCities.put(chatId, new PriorityQueue<>(4));
@@ -174,7 +173,9 @@ public class Bot extends AbilityBot {
 
             // 1800000ms == 0.5hr, 10800000ms == 3hrs
             if (menuStatus == SCHEDULE_WEATHER) {
-                displayWeatherByTimer(update, true, cityName, 10800000);
+                userScheduleTimerMap.put(update.getMessage().getChatId(), new Timer());
+                userMenuState.put(update.getMessage().getChatId(), START);
+                displayWeatherByTimer(update, true, cityName, 3000);
             }
 
         } else {
@@ -184,7 +185,7 @@ public class Bot extends AbilityBot {
 
     @SneakyThrows
     private void displayWeatherByTimer(Update update, boolean isActive, String cityName, long period) {
-        Timer timer = new Timer();
+        Timer timer = userScheduleTimerMap.get(update.getMessage().getChatId());
 
         if (isActive) {
             TimerTask timerTask = new TimerTask() {
