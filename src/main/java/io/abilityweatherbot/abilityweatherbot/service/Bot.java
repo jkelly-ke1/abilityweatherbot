@@ -2,6 +2,8 @@ package io.abilityweatherbot.abilityweatherbot.service;
 
 import io.abilityweatherbot.abilityweatherbot.config.BotConfig;
 import io.abilityweatherbot.abilityweatherbot.dto.MenuStatus;
+import io.abilityweatherbot.abilityweatherbot.models.UserSettings;
+import io.abilityweatherbot.abilityweatherbot.util.BotText;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.telegram.abilitybots.api.bot.AbilityBot;
 import org.telegram.abilitybots.api.objects.Ability;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.*;
 
@@ -26,8 +29,9 @@ public class Bot extends AbilityBot {
 
     private final Update update = new Update();
 
-    private final BotService botService;
+    private final WeatherService weatherService;
     private final MessageHandler messageHandler;
+    private final UserSettingsService userSettingsService;
 
     @Value("${telegram.creator_id}")
     private long creatorId;
@@ -39,14 +43,19 @@ public class Bot extends AbilityBot {
 
     private final Map<Long, Timer> userScheduleTimerMap = new HashMap<>();
 
-    private static final String entryMessage = "Enter city name\uD83D\uDC47";
+    private static final Map<Long, Map<BotText.TextName, String>> botText = new HashMap<>();
+
     private static final String regexCityPattern = "^[A-Za-z.-]+$";
 
     @Autowired
-    public Bot(BotConfig botConfig, BotService botService, MessageHandler messageHandler) {
+    public Bot(BotConfig botConfig,
+               WeatherService weatherService,
+               MessageHandler messageHandler,
+               UserSettingsService userSettingsService) {
         super(botConfig.getBotToken(), botConfig.getBotToken());
-        this.botService = botService;
+        this.weatherService = weatherService;
         this.messageHandler = messageHandler;
+        this.userSettingsService = userSettingsService;
     }
 
     @Override
@@ -61,15 +70,11 @@ public class Bot extends AbilityBot {
                 .locality(ALL)
                 .privacy(PUBLIC)
                 .action(a -> {
-                    silent.send("""
-                            Hello!✋
-                            I am @neatWeatherBot 🤖
-                            You can check weather by typing /weather command. 
-                            There are another features too! 
-                            Just press menu button 👇 
-                            """, a.chatId());
+                    userSettingsService.addUser(mapUserSetting(a.chatId(), a.user().getLanguageCode()));
+                    botText.put(userSettingsService.getUserSettingsByTelegramUserId(a.user().getId()).getTelegramUserId(),
+                            BotText.setupLanguageByDefaultLanguageCode(userSettingsService.getUserSettingsByTelegramUserId(a.user().getId()).getLanguageCode()));
+                    silent.send(botText.get(a.user().getId()).get(BotText.TextName.START), a.chatId());
                     userMenuState.put(a.chatId(), START);
-                    System.out.println(userMenuState.toString());
                 })
                 .build();
     }
@@ -81,7 +86,7 @@ public class Bot extends AbilityBot {
                 .locality(ALL)
                 .privacy(PUBLIC)
                 .action(a -> {
-                    silent.send(entryMessage, a.chatId());
+                    silent.send(botText.get(a.user().getId()).get(BotText.TextName.ENTRY), a.chatId());
                     userMenuState.put(a.chatId(), CURRENT_WEATHER);
                 })
                 .build();
@@ -94,7 +99,7 @@ public class Bot extends AbilityBot {
                 .locality(ALL)
                 .privacy(PUBLIC)
                 .action(a -> {
-                    silent.send(entryMessage, a.chatId());
+                    silent.send(botText.get(a.user().getId()).get(BotText.TextName.ENTRY), a.chatId());
                     userMenuState.put(a.chatId(), SCHEDULE_WEATHER);
                 })
                 .build();
@@ -107,7 +112,7 @@ public class Bot extends AbilityBot {
                 .locality(ALL)
                 .privacy(PUBLIC)
                 .action(a -> {
-                    silent.send(entryMessage, a.chatId());
+                    silent.send(botText.get(a.user().getId()).get(BotText.TextName.ENTRY), a.chatId());
                     userMenuState.put(a.chatId(), FORECAST_WEATHER);
                 })
                 .build();
@@ -123,20 +128,32 @@ public class Bot extends AbilityBot {
                 .build();
     }
 
+
+    public Ability language() {
+        return Ability.builder()
+                .name("language")
+                .info("change bot language")
+                .locality(ALL)
+                .privacy(PUBLIC)
+                .action(a -> {
+                    try {
+                        execute(messageHandler.makeMessageWithLanguageMarkup(a.update(),
+                                botText.get(a.user().getId()).get(BotText.TextName.SETTINGS_LANGUAGE_ENTRY)));
+                    } catch (TelegramApiException e) {
+                        e.printStackTrace();
+                    }
+                    userMenuState.put(a.chatId(), SETTINGS);
+                })
+                .build();
+    }
+
     public Ability about() {
         return Ability.builder()
                 .name("about")
                 .info("about this bot")
                 .locality(ALL)
                 .privacy(PUBLIC)
-                .action(a -> silent.send("""
-                        It's a simple weather bot that allows you to check weather
-                        from any place in the world. 
-                        The information provided by 
-                        the bot is based on meteorological 
-                        data taken from openweathermap.com site.
-                        For any further questions, author: @VelorumX 👌
-                        """, a.chatId()))
+                .action(a -> silent.send(botText.get(a.user().getId()).get(BotText.TextName.ABOUT), a.chatId()))
                 .build();
     }
 
@@ -156,31 +173,67 @@ public class Bot extends AbilityBot {
     }
 
     @SneakyThrows
-    private void menuHandler(Update update, String cityName, MenuStatus menuStatus, long chatId) {
-        if (cityName.matches(regexCityPattern)) {
+    private void menuHandler(Update update, String incomingMessage, MenuStatus menuStatus, long chatId) {
+
+        if (menuStatus == SETTINGS) {
+            var updatedUserSettings = userSettingsService.getUserSettingsByTelegramUserId(update.getMessage().getFrom().getId());
+
+            switch (incomingMessage) {
+                case "English\uD83C\uDDEC\uD83C\uDDE7" -> {
+                    botText.put(update.getMessage().getFrom().getId(), BotText.englishTextMap());
+                    updatedUserSettings.setBotLanguageCode("en");
+                    userSettingsService.updateUserSettingsByTelegramUserId(update.getMessage().getFrom().getId(), updatedUserSettings);
+                    execute(messageHandler.makeMessage(update,
+                            botText.get(update.getMessage().getFrom().getId())
+                                    .get(BotText.TextName.SETTINGS_LANGUAGE_CHANGE_SUCCESS)));
+                }
+                case "Українська\uD83C\uDDFA\uD83C\uDDE6" -> {
+                    botText.put(update.getMessage().getFrom().getId(), BotText.ukrainianTextMap());
+                    updatedUserSettings.setBotLanguageCode("uk");
+                    userSettingsService.updateUserSettingsByTelegramUserId(update.getMessage().getFrom().getId(), updatedUserSettings);
+                    execute(messageHandler.makeMessage(update,
+                            botText.get(update.getMessage().getFrom().getId())
+                                    .get(BotText.TextName.SETTINGS_LANGUAGE_CHANGE_SUCCESS)));
+                }
+                case "Русский\uD83C\uDDF7\uD83C\uDDFA" -> {
+                    botText.put(update.getMessage().getFrom().getId(), BotText.russianTextMap());
+                    updatedUserSettings.setBotLanguageCode("ru");
+                    userSettingsService.updateUserSettingsByTelegramUserId(update.getMessage().getFrom().getId(), updatedUserSettings);
+                    execute(messageHandler.makeMessage(update,
+                            botText.get(update.getMessage().getFrom().getId())
+                                    .get(BotText.TextName.SETTINGS_LANGUAGE_CHANGE_SUCCESS)));
+                }
+            }
+
+        } else if (incomingMessage.matches(regexCityPattern)) {
             if (!recentCities.containsKey(chatId))
                 recentCities.put(chatId, new PriorityQueue<>(4));
 
             if (menuStatus == CURRENT_WEATHER) {
-                recentCities.get(chatId).add(cityName);
-                execute(botService.displayWeather(update, cityName, true, recentCities.get(chatId)));
+                recentCities.get(chatId).add(incomingMessage);
+                execute(weatherService.displayWeather(update, incomingMessage, true,
+                        recentCities.get(chatId), botText.get(update.getMessage().getFrom().getId()),
+                        userSettingsService.getUserSettingsByTelegramUserId(update.getMessage().getFrom().getId()).getBotLanguageCode()));
             }
 
             if (menuStatus == FORECAST_WEATHER) {
-                recentCities.get(chatId).add(cityName);
-                execute(botService.displayWeatherForecast(update, cityName));
+                recentCities.get(chatId).add(incomingMessage);
+                execute(weatherService.displayWeatherForecast(update, incomingMessage, botText.get(update.getMessage().getFrom().getId()),
+                        userSettingsService.getUserSettingsByTelegramUserId(update.getMessage().getFrom().getId()).getBotLanguageCode()));
             }
 
             // 1800000ms == 0.5hr, 10800000ms == 3hrs
             if (menuStatus == SCHEDULE_WEATHER) {
                 userScheduleTimerMap.put(update.getMessage().getChatId(), new Timer());
                 userMenuState.put(update.getMessage().getChatId(), START);
-                displayWeatherByTimer(update, true, cityName, 3000);
+                displayWeatherByTimer(update, true, incomingMessage, 10000);
             }
 
         } else {
-            execute(messageHandler.makeMessage(update, "❌Wrong city name format!"));
+            execute(messageHandler.makeMessage(update,
+                    botText.get(update.getMessage().getFrom().getId()).get(BotText.TextName.WRONG)));
         }
+
     }
 
     @SneakyThrows
@@ -192,7 +245,9 @@ public class Bot extends AbilityBot {
                 @SneakyThrows
                 @Override
                 public void run() {
-                    execute(botService.displayWeather(update, cityName, false, null));
+                    execute(weatherService.displayWeather(update, cityName, false,
+                            null, botText.get(update.getMessage().getFrom().getId()),
+                            userSettingsService.getUserSettingsByTelegramUserId(update.getMessage().getFrom().getId()).getBotLanguageCode()));
                 }
             };
 
@@ -202,9 +257,18 @@ public class Bot extends AbilityBot {
 
         } else {
             timer.cancel();
-            execute(messageHandler.makeMessage(update, "✅Schedule is canceled."));
+            execute(messageHandler.makeMessage(update,
+                    botText.get(update.getMessage().getFrom().getId()).get(BotText.TextName.SCHEDULE_CANCEL)));
             log.info("Schedule in chat by id {} was canceled", update.getMessage().getChatId());
         }
+    }
+
+    private UserSettings mapUserSetting(long userId, String languageCode) {
+        var userSettings = new UserSettings();
+        userSettings.setTelegramUserId(userId);
+        userSettings.setLanguageCode(languageCode);
+        userSettings.setBotLanguageCode(languageCode);
+        return userSettings;
     }
 
 }

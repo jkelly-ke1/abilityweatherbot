@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
 @Component
 public class Converter {
@@ -30,9 +31,9 @@ public class Converter {
         };
     }
 
-    public String rainProbabilityConverter(double pop) {
+    public String rainProbabilityConverter(double pop, Map<BotText.TextName, String> text) {
         int percentage = (int) (pop * 100);
-        return (percentage <= 50) ? percentage + "%." : percentage + "%. Better take your umbrella!";
+        return (percentage <= 50) ? percentage + "%." : percentage + text.get(BotText.TextName.FORECAST_UMBRELLA_WARNING);
     }
 
 
