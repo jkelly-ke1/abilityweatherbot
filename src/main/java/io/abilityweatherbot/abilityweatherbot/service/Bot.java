@@ -4,6 +4,7 @@ import io.abilityweatherbot.abilityweatherbot.config.BotConfig;
 import io.abilityweatherbot.abilityweatherbot.dto.MenuStatus;
 import io.abilityweatherbot.abilityweatherbot.models.UserSettings;
 import io.abilityweatherbot.abilityweatherbot.util.BotText;
+import io.abilityweatherbot.abilityweatherbot.util.MessageHandler;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,18 +44,22 @@ public class Bot extends AbilityBot {
 
     private final Map<Long, Timer> userScheduleTimerMap = new HashMap<>();
 
+    private final Map<Long, TimerTask> userTimerTaskMap = new HashMap<>();
+
     private static final Map<Long, Map<BotText.TextName, String>> botText = new HashMap<>();
 
-    private static final String regexCityPattern = "^[A-Za-z.-]+$";
+    private static final String regexCityPattern = "[\\p{L}.-]+";
+
 
     @Autowired
     public Bot(BotConfig botConfig,
                WeatherService weatherService,
-               MessageHandler messageHandler,
-               UserSettingsService userSettingsService) {
+
+               MessageHandler messageHandler, UserSettingsService userSettingsService) {
         super(botConfig.getBotToken(), botConfig.getBotToken());
         this.weatherService = weatherService;
         this.messageHandler = messageHandler;
+
         this.userSettingsService = userSettingsService;
     }
 
@@ -176,7 +181,8 @@ public class Bot extends AbilityBot {
     private void menuHandler(Update update, String incomingMessage, MenuStatus menuStatus, long chatId) {
 
         if (menuStatus == SETTINGS) {
-            var updatedUserSettings = userSettingsService.getUserSettingsByTelegramUserId(update.getMessage().getFrom().getId());
+            var updatedUserSettings =
+                    userSettingsService.getUserSettingsByTelegramUserId(update.getMessage().getFrom().getId());
 
             switch (incomingMessage) {
                 case "English\uD83C\uDDEC\uD83C\uDDE7" -> {
@@ -206,6 +212,7 @@ public class Bot extends AbilityBot {
             }
 
         } else if (incomingMessage.matches(regexCityPattern)) {
+
             if (!recentCities.containsKey(chatId))
                 recentCities.put(chatId, new PriorityQueue<>(4));
 
@@ -213,20 +220,23 @@ public class Bot extends AbilityBot {
                 recentCities.get(chatId).add(incomingMessage);
                 execute(weatherService.displayWeather(update, incomingMessage, true,
                         recentCities.get(chatId), botText.get(update.getMessage().getFrom().getId()),
-                        userSettingsService.getUserSettingsByTelegramUserId(update.getMessage().getFrom().getId()).getBotLanguageCode()));
+                        userSettingsService.getUserSettingsByTelegramUserId(update.getMessage().getFrom().getId())
+                                .getBotLanguageCode()));
             }
 
             if (menuStatus == FORECAST_WEATHER) {
                 recentCities.get(chatId).add(incomingMessage);
-                execute(weatherService.displayWeatherForecast(update, incomingMessage, botText.get(update.getMessage().getFrom().getId()),
-                        userSettingsService.getUserSettingsByTelegramUserId(update.getMessage().getFrom().getId()).getBotLanguageCode()));
+                execute(weatherService.displayWeatherForecast(update, incomingMessage,
+                        botText.get(update.getMessage().getFrom().getId()),
+                        userSettingsService.getUserSettingsByTelegramUserId(update.getMessage().getFrom().getId())
+                                .getBotLanguageCode()));
             }
 
             // 1800000ms == 0.5hr, 10800000ms == 3hrs
             if (menuStatus == SCHEDULE_WEATHER) {
                 userScheduleTimerMap.put(update.getMessage().getChatId(), new Timer());
                 userMenuState.put(update.getMessage().getChatId(), START);
-                displayWeatherByTimer(update, true, incomingMessage, 10000);
+                displayWeatherByTimer(update, true, incomingMessage, 10800000);
             }
 
         } else {
@@ -239,24 +249,28 @@ public class Bot extends AbilityBot {
     @SneakyThrows
     private void displayWeatherByTimer(Update update, boolean isActive, String cityName, long period) {
         Timer timer = userScheduleTimerMap.get(update.getMessage().getChatId());
+        var oldTimerTask = userTimerTaskMap.get(update.getMessage().getChatId());
+
+        TimerTask timerTask = new TimerTask() {
+            @SneakyThrows
+            @Override
+            public void run() {
+                execute(weatherService.displayWeather(update, cityName, false,
+                        null, botText.get(update.getMessage().getFrom().getId()),
+                        userSettingsService.getUserSettingsByTelegramUserId(update.getMessage().getFrom().getId()).getBotLanguageCode()));
+            }
+        };
 
         if (isActive) {
-            TimerTask timerTask = new TimerTask() {
-                @SneakyThrows
-                @Override
-                public void run() {
-                    execute(weatherService.displayWeather(update, cityName, false,
-                            null, botText.get(update.getMessage().getFrom().getId()),
-                            userSettingsService.getUserSettingsByTelegramUserId(update.getMessage().getFrom().getId()).getBotLanguageCode()));
-                }
-            };
+            if (oldTimerTask != null)
+                oldTimerTask.cancel();
 
-            timer.schedule(timerTask, new Date(), period);
+            userTimerTaskMap.put(update.getMessage().getChatId(), timerTask);
+            timer.schedule(userTimerTaskMap.get(update.getMessage().getChatId()), new Date(), period);
             log.info("Schedule query '{}' in {} chat id was started.",
                     cityName, update.getMessage().getChatId());
-
         } else {
-            timer.cancel();
+            oldTimerTask.cancel();
             execute(messageHandler.makeMessage(update,
                     botText.get(update.getMessage().getFrom().getId()).get(BotText.TextName.SCHEDULE_CANCEL)));
             log.info("Schedule in chat by id {} was canceled", update.getMessage().getChatId());

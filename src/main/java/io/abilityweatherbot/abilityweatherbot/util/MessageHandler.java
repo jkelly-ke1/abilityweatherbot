@@ -1,7 +1,6 @@
-package io.abilityweatherbot.abilityweatherbot.service;
+package io.abilityweatherbot.abilityweatherbot.util;
 
 import org.springframework.stereotype.Component;
-import org.telegram.telegrambots.meta.api.methods.groupadministration.SetChatPhoto;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;

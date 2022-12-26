@@ -7,6 +7,7 @@ import io.abilityweatherbot.abilityweatherbot.dto.forecast.ForecastDetails;
 import io.abilityweatherbot.abilityweatherbot.dto.forecast.ForecastDto;
 import io.abilityweatherbot.abilityweatherbot.util.BotText;
 import io.abilityweatherbot.abilityweatherbot.util.Converter;
+import io.abilityweatherbot.abilityweatherbot.util.MessageHandler;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
