@@ -2,11 +2,13 @@ package io.abilityweatherbot.abilityweatherbot.service;
 
 import io.abilityweatherbot.abilityweatherbot.config.BotConfig;
 import io.abilityweatherbot.abilityweatherbot.dto.MenuStatus;
+import io.abilityweatherbot.abilityweatherbot.dto.UserSettingsDto;
 import io.abilityweatherbot.abilityweatherbot.models.UserSettings;
 import io.abilityweatherbot.abilityweatherbot.util.BotText;
 import io.abilityweatherbot.abilityweatherbot.util.MessageHandler;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
@@ -33,6 +35,7 @@ public class Bot extends AbilityBot {
     private final WeatherService weatherService;
     private final MessageHandler messageHandler;
     private final UserSettingsService userSettingsService;
+    private final ModelMapper modelMapper;
 
     @Value("${telegram.creator_id}")
     private long creatorId;
@@ -55,12 +58,13 @@ public class Bot extends AbilityBot {
     public Bot(BotConfig botConfig,
                WeatherService weatherService,
 
-               MessageHandler messageHandler, UserSettingsService userSettingsService) {
+               MessageHandler messageHandler, UserSettingsService userSettingsService, ModelMapper modelMapper) {
         super(botConfig.getBotToken(), botConfig.getBotToken());
         this.weatherService = weatherService;
         this.messageHandler = messageHandler;
 
         this.userSettingsService = userSettingsService;
+        this.modelMapper = modelMapper;
     }
 
     @Override
@@ -75,7 +79,7 @@ public class Bot extends AbilityBot {
                 .locality(ALL)
                 .privacy(PUBLIC)
                 .action(a -> {
-                    userSettingsService.addUser(mapUserSetting(a.chatId(), a.user().getLanguageCode()));
+                    userSettingsService.addUser(onInitUserSettingMap(a.chatId(), a.user().getLanguageCode()));
                     botText.put(userSettingsService.getUserSettingsByTelegramUserId(a.user().getId()).getTelegramUserId(),
                             BotText.setupLanguageByDefaultLanguageCode(userSettingsService.getUserSettingsByTelegramUserId(a.user().getId()).getLanguageCode()));
                     silent.send(botText.get(a.user().getId()).get(BotText.TextName.START), a.chatId());
@@ -181,30 +185,34 @@ public class Bot extends AbilityBot {
     private void menuHandler(Update update, String incomingMessage, MenuStatus menuStatus, long chatId) {
 
         if (menuStatus == SETTINGS) {
-            var updatedUserSettings =
-                    userSettingsService.getUserSettingsByTelegramUserId(update.getMessage().getFrom().getId());
+            var updatedUserSettingsDto =
+                    convertToUserSettingsDto(userSettingsService
+                            .getUserSettingsByTelegramUserId(update.getMessage().getFrom().getId()));
 
             switch (incomingMessage) {
                 case "English\uD83C\uDDEC\uD83C\uDDE7" -> {
                     botText.put(update.getMessage().getFrom().getId(), BotText.englishTextMap());
-                    updatedUserSettings.setBotLanguageCode("en");
-                    userSettingsService.updateUserSettingsByTelegramUserId(update.getMessage().getFrom().getId(), updatedUserSettings);
+                    updatedUserSettingsDto.setBotLanguageCode("en");
+                    userSettingsService.updateUserSettingsByTelegramUserId(update.getMessage().getFrom().getId(),
+                            convertFromUserSettingsDto(updatedUserSettingsDto));
                     execute(messageHandler.makeMessage(update,
                             botText.get(update.getMessage().getFrom().getId())
                                     .get(BotText.TextName.SETTINGS_LANGUAGE_CHANGE_SUCCESS)));
                 }
                 case "Українська\uD83C\uDDFA\uD83C\uDDE6" -> {
                     botText.put(update.getMessage().getFrom().getId(), BotText.ukrainianTextMap());
-                    updatedUserSettings.setBotLanguageCode("uk");
-                    userSettingsService.updateUserSettingsByTelegramUserId(update.getMessage().getFrom().getId(), updatedUserSettings);
+                    updatedUserSettingsDto.setBotLanguageCode("uk");
+                    userSettingsService.updateUserSettingsByTelegramUserId(update.getMessage().getFrom().getId(),
+                            convertFromUserSettingsDto(updatedUserSettingsDto));
                     execute(messageHandler.makeMessage(update,
                             botText.get(update.getMessage().getFrom().getId())
                                     .get(BotText.TextName.SETTINGS_LANGUAGE_CHANGE_SUCCESS)));
                 }
                 case "Русский\uD83C\uDDF7\uD83C\uDDFA" -> {
                     botText.put(update.getMessage().getFrom().getId(), BotText.russianTextMap());
-                    updatedUserSettings.setBotLanguageCode("ru");
-                    userSettingsService.updateUserSettingsByTelegramUserId(update.getMessage().getFrom().getId(), updatedUserSettings);
+                    updatedUserSettingsDto.setBotLanguageCode("ru");
+                    userSettingsService.updateUserSettingsByTelegramUserId(update.getMessage().getFrom().getId(),
+                            convertFromUserSettingsDto(updatedUserSettingsDto));
                     execute(messageHandler.makeMessage(update,
                             botText.get(update.getMessage().getFrom().getId())
                                     .get(BotText.TextName.SETTINGS_LANGUAGE_CHANGE_SUCCESS)));
@@ -277,7 +285,16 @@ public class Bot extends AbilityBot {
         }
     }
 
-    private UserSettings mapUserSetting(long userId, String languageCode) {
+    private UserSettings convertFromUserSettingsDto (UserSettingsDto userSettingsDto) {
+        return modelMapper.map(userSettingsDto, UserSettings.class);
+    }
+
+    private UserSettingsDto convertToUserSettingsDto (UserSettings userSettings) {
+        return modelMapper.map(userSettings, UserSettingsDto.class);
+    }
+
+    // call this method once for every user when '/start' command was send
+    private UserSettings onInitUserSettingMap(long userId, String languageCode) {
         var userSettings = new UserSettings();
         userSettings.setTelegramUserId(userId);
         userSettings.setLanguageCode(languageCode);
