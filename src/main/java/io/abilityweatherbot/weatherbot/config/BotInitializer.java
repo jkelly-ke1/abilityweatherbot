@@ -1,6 +1,6 @@
-package io.abilityweatherbot.abilityweatherbot.config;
+package io.abilityweatherbot.weatherbot.config;
 
-import io.abilityweatherbot.abilityweatherbot.service.Bot;
+import io.abilityweatherbot.weatherbot.service.Bot;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;

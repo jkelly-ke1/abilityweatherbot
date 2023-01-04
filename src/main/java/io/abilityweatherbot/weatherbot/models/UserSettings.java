@@ -1,4 +1,4 @@
-package io.abilityweatherbot.abilityweatherbot.models;
+package io.abilityweatherbot.weatherbot.models;
 
 import lombok.Getter;
 import lombok.Setter;

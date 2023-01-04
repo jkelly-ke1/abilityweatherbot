@@ -1,6 +1,6 @@
-package io.abilityweatherbot.abilityweatherbot.repositories;
+package io.abilityweatherbot.weatherbot.repositories;
 
-import io.abilityweatherbot.abilityweatherbot.models.UserSettings;
+import io.abilityweatherbot.weatherbot.models.UserSettings;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

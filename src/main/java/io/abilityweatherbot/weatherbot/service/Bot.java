@@ -1,11 +1,11 @@
-package io.abilityweatherbot.abilityweatherbot.service;
+package io.abilityweatherbot.weatherbot.service;
 
-import io.abilityweatherbot.abilityweatherbot.config.BotConfig;
-import io.abilityweatherbot.abilityweatherbot.dto.MenuStatus;
-import io.abilityweatherbot.abilityweatherbot.dto.UserSettingsDto;
-import io.abilityweatherbot.abilityweatherbot.models.UserSettings;
-import io.abilityweatherbot.abilityweatherbot.util.BotText;
-import io.abilityweatherbot.abilityweatherbot.util.MessageHandler;
+import io.abilityweatherbot.weatherbot.config.BotConfig;
+import io.abilityweatherbot.weatherbot.dto.MenuStatus;
+import io.abilityweatherbot.weatherbot.dto.UserSettingsDto;
+import io.abilityweatherbot.weatherbot.models.UserSettings;
+import io.abilityweatherbot.weatherbot.util.BotText;
+import io.abilityweatherbot.weatherbot.util.MessageHandler;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import org.modelmapper.ModelMapper;
@@ -20,7 +20,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.util.*;
 
-import static io.abilityweatherbot.abilityweatherbot.dto.MenuStatus.*;
+import static io.abilityweatherbot.weatherbot.dto.MenuStatus.*;
 import static org.telegram.abilitybots.api.objects.Flag.MESSAGE;
 import static org.telegram.abilitybots.api.objects.Locality.ALL;
 import static org.telegram.abilitybots.api.objects.Privacy.PUBLIC;

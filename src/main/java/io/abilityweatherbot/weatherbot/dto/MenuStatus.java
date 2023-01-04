@@ -1,4 +1,4 @@
-package io.abilityweatherbot.abilityweatherbot.dto;
+package io.abilityweatherbot.weatherbot.dto;
 
 public enum MenuStatus {
     START,

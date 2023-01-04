@@ -1,4 +1,4 @@
-package io.abilityweatherbot.abilityweatherbot.dto;
+package io.abilityweatherbot.weatherbot.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;

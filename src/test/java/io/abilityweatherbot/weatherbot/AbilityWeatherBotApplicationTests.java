@@ -1,4 +1,4 @@
-package io.abilityweatherbot.abilityweatherbot;
+package io.abilityweatherbot.weatherbot;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

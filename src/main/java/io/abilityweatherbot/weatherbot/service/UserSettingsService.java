@@ -1,7 +1,7 @@
-package io.abilityweatherbot.abilityweatherbot.service;
+package io.abilityweatherbot.weatherbot.service;
 
-import io.abilityweatherbot.abilityweatherbot.models.UserSettings;
-import io.abilityweatherbot.abilityweatherbot.repositories.UserSettingsRepository;
+import io.abilityweatherbot.weatherbot.models.UserSettings;
+import io.abilityweatherbot.weatherbot.repositories.UserSettingsRepository;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

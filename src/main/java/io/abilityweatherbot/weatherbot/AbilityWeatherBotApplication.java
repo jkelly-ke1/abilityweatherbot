@@ -1,4 +1,4 @@
-package io.abilityweatherbot.abilityweatherbot;
+package io.abilityweatherbot.weatherbot;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.boot.SpringApplication;

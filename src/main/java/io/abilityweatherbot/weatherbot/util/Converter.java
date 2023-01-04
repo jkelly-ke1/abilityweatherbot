@@ -1,4 +1,4 @@
-package io.abilityweatherbot.abilityweatherbot.util;
+package io.abilityweatherbot.weatherbot.util;
 
 import org.springframework.stereotype.Component;
 

@@ -1,13 +1,13 @@
-package io.abilityweatherbot.abilityweatherbot.service;
+package io.abilityweatherbot.weatherbot.service;
 
-import io.abilityweatherbot.abilityweatherbot.config.OpenWeatherConfig;
-import io.abilityweatherbot.abilityweatherbot.dto.CityDto;
-import io.abilityweatherbot.abilityweatherbot.dto.WeatherDto;
-import io.abilityweatherbot.abilityweatherbot.dto.forecast.ForecastDetails;
-import io.abilityweatherbot.abilityweatherbot.dto.forecast.ForecastDto;
-import io.abilityweatherbot.abilityweatherbot.util.BotText;
-import io.abilityweatherbot.abilityweatherbot.util.Converter;
-import io.abilityweatherbot.abilityweatherbot.util.MessageHandler;
+import io.abilityweatherbot.weatherbot.config.OpenWeatherConfig;
+import io.abilityweatherbot.weatherbot.dto.CityDto;
+import io.abilityweatherbot.weatherbot.dto.WeatherDto;
+import io.abilityweatherbot.weatherbot.dto.forecast.ForecastDetails;
+import io.abilityweatherbot.weatherbot.dto.forecast.ForecastDto;
+import io.abilityweatherbot.weatherbot.util.BotText;
+import io.abilityweatherbot.weatherbot.util.Converter;
+import io.abilityweatherbot.weatherbot.util.MessageHandler;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;

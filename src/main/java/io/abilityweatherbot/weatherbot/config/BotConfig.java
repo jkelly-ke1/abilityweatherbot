@@ -1,4 +1,4 @@
-package io.abilityweatherbot.abilityweatherbot.config;
+package io.abilityweatherbot.weatherbot.config;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,9 +10,17 @@ import org.springframework.context.annotation.PropertySource;
 @NoArgsConstructor
 @Getter
 @PropertySource("/application.properties")
-public class OpenWeatherConfig {
+public class BotConfig {
 
-    @Value("${openweather.token}")
-    private String token;
+    @Value("${bot.name}")
+    private String botName;
+
+    @Value("${bot.token}")
+    private String botToken;
+
+    public BotConfig(String botName, String botToken) {
+        this.botName = botName;
+        this.botToken = botToken;
+    }
 
 }
