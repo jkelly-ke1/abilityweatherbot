@@ -26,6 +26,3 @@ public class UserSettings {
     private String botLanguageCode;
 
 }
-
-
-

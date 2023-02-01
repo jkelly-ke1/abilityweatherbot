@@ -87,9 +87,8 @@ public class WeatherService {
                     text.get(BotText.TextName.WIND),
                     weatherDto.getWindInfo().get("speed"));
 
-            if (hasRecentCitiesKeyboard) {
+            if (hasRecentCitiesKeyboard)
                 message.setReplyMarkup(messageHandler.recentCitiesMarkup(queueOfCities));
-            }
 
             message.setChatId(update.getMessage().getChatId().toString());
             message.setText(text.get(BotText.TextName.WEATHER_IN) + cityName + "\n\n" + messageString);
@@ -121,8 +120,8 @@ public class WeatherService {
             // 'cnt' - to limit number of timestamps
             // 'lang' - for language selection
             var forecastDto = restTemplate.getForObject(forecastUrl + "lat=" +
-                    cityDtoList.get(0).getLat() + "&lon=" + cityDtoList.get(0).getLon() +
-                    "&appid=" + openWeatherConfig.getToken() + "&units=metric" + "&lang=" + userLanguageCode,
+                            cityDtoList.get(0).getLat() + "&lon=" + cityDtoList.get(0).getLon() +
+                            "&appid=" + openWeatherConfig.getToken() + "&units=metric" + "&lang=" + userLanguageCode,
                     ForecastDto.class);
 
             if (forecastDto != null) {

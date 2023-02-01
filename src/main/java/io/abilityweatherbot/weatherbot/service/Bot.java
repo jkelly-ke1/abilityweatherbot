@@ -78,12 +78,12 @@ public class Bot extends AbilityBot {
                 .info("(re)start bot")
                 .locality(ALL)
                 .privacy(PUBLIC)
-                .action(a -> {
-                    userSettingsService.addUser(onInitUserSettingMap(a.chatId(), a.user().getLanguageCode()));
-                    botText.put(userSettingsService.getUserSettingsByTelegramUserId(a.user().getId()).getTelegramUserId(),
-                            BotText.setupLanguageByDefaultLanguageCode(userSettingsService.getUserSettingsByTelegramUserId(a.user().getId()).getLanguageCode()));
-                    silent.send(botText.get(a.user().getId()).get(BotText.TextName.START), a.chatId());
-                    userMenuState.put(a.chatId(), START);
+                .action(act -> {
+                    userSettingsService.addUser(onInitUserSettingMap(act.chatId(), act.user().getLanguageCode()));
+                    botText.put(userSettingsService.getUserSettingsByTelegramUserId(act.user().getId()).getTelegramUserId(),
+                            BotText.setupLanguageByDefaultLanguageCode(userSettingsService.getUserSettingsByTelegramUserId(act.user().getId()).getLanguageCode()));
+                    silent.send(botText.get(act.user().getId()).get(BotText.TextName.START), act.chatId());
+                    userMenuState.put(act.chatId(), START);
                 })
                 .build();
     }
@@ -94,9 +94,9 @@ public class Bot extends AbilityBot {
                 .info("check current weather in your city")
                 .locality(ALL)
                 .privacy(PUBLIC)
-                .action(a -> {
-                    silent.send(botText.get(a.user().getId()).get(BotText.TextName.ENTRY), a.chatId());
-                    userMenuState.put(a.chatId(), CURRENT_WEATHER);
+                .action(act -> {
+                    silent.send(botText.get(act.user().getId()).get(BotText.TextName.ENTRY), act.chatId());
+                    userMenuState.put(act.chatId(), CURRENT_WEATHER);
                 })
                 .build();
     }
@@ -107,9 +107,9 @@ public class Bot extends AbilityBot {
                 .info("get current weather every couple hours")
                 .locality(ALL)
                 .privacy(PUBLIC)
-                .action(a -> {
-                    silent.send(botText.get(a.user().getId()).get(BotText.TextName.ENTRY), a.chatId());
-                    userMenuState.put(a.chatId(), SCHEDULE_WEATHER);
+                .action(act -> {
+                    silent.send(botText.get(act.user().getId()).get(BotText.TextName.ENTRY), act.chatId());
+                    userMenuState.put(act.chatId(), SCHEDULE_WEATHER);
                 })
                 .build();
     }
@@ -120,9 +120,9 @@ public class Bot extends AbilityBot {
                 .info("weather forecast for 5 days")
                 .locality(ALL)
                 .privacy(PUBLIC)
-                .action(a -> {
-                    silent.send(botText.get(a.user().getId()).get(BotText.TextName.ENTRY), a.chatId());
-                    userMenuState.put(a.chatId(), FORECAST_WEATHER);
+                .action(act -> {
+                    silent.send(botText.get(act.user().getId()).get(BotText.TextName.ENTRY), act.chatId());
+                    userMenuState.put(act.chatId(), FORECAST_WEATHER);
                 })
                 .build();
     }
@@ -133,7 +133,7 @@ public class Bot extends AbilityBot {
                 .info("cancel current action")
                 .locality(ALL)
                 .privacy(PUBLIC)
-                .action(a -> displayWeatherByTimer(update, false, null, 0))
+                .action(act -> displayWeatherByTimer(update, false, null, 0))
                 .build();
     }
 
@@ -144,14 +144,14 @@ public class Bot extends AbilityBot {
                 .info("change bot language")
                 .locality(ALL)
                 .privacy(PUBLIC)
-                .action(a -> {
+                .action(act -> {
                     try {
-                        execute(messageHandler.makeMessageWithLanguageMarkup(a.update(),
-                                botText.get(a.user().getId()).get(BotText.TextName.SETTINGS_LANGUAGE_ENTRY)));
+                        execute(messageHandler.makeMessageWithLanguageMarkup(act.update(),
+                                botText.get(act.user().getId()).get(BotText.TextName.SETTINGS_LANGUAGE_ENTRY)));
                     } catch (TelegramApiException e) {
                         e.printStackTrace();
                     }
-                    userMenuState.put(a.chatId(), SETTINGS);
+                    userMenuState.put(act.chatId(), SETTINGS);
                 })
                 .build();
     }
@@ -162,7 +162,7 @@ public class Bot extends AbilityBot {
                 .info("about this bot")
                 .locality(ALL)
                 .privacy(PUBLIC)
-                .action(a -> silent.send(botText.get(a.user().getId()).get(BotText.TextName.ABOUT), a.chatId()))
+                .action(act -> silent.send(botText.get(act.user().getId()).get(BotText.TextName.ABOUT), act.chatId()))
                 .build();
     }
 
@@ -256,7 +256,7 @@ public class Bot extends AbilityBot {
 
     @SneakyThrows
     private void displayWeatherByTimer(Update update, boolean isActive, String cityName, long period) {
-        Timer timer = userScheduleTimerMap.get(update.getMessage().getChatId());
+        var timer = userScheduleTimerMap.get(update.getMessage().getChatId());
         var oldTimerTask = userTimerTaskMap.get(update.getMessage().getChatId());
 
         TimerTask timerTask = new TimerTask() {

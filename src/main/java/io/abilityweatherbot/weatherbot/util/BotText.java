@@ -18,7 +18,7 @@ public class BotText {
             from any place in the world. 
             The information provided by 
             the bot is based on meteorological 
-            data taken from openweathermap.com site.
+            data taken from openweathermap.org site.
             For any further questions, author: @VelorumX 👌
             """;
     public static final String ENTRY_MESSAGE_ENG = "Enter city name\uD83D\uDC47";
@@ -52,8 +52,8 @@ public class BotText {
             в будь-якій точці світу.
             Інформація, яку надає цей бот, базується на
             метеорологічних даних які взяті
-            з сайту openweathermap.com.
-            З будь-якими додатковими запитаннями, 
+            з сайту openweathermap.org.
+            З будь-якими додатковими питаннями, 
             звертайтесь до автора: @VelorumX 👌
             """;
     public static final String ENTRY_MESSAGE_UA = "Введіть назву міста\uD83D\uDC47";
@@ -72,7 +72,7 @@ public class BotText {
             Для цього, оберіть потрібну мову зі списку нижче.
             👇 👇 👇 
             """;
-    public static final String SETTINGS_LANGUAGE_CHANGE_SUCCESS_UA = "Мова була змінена на \uD83C\uDDFA\uD83C\uDDE6!";
+    public static final String SETTINGS_LANGUAGE_CHANGE_SUCCESS_UA = "Мову було змінено на \uD83C\uDDFA\uD83C\uDDE6!";
 
     public static final String START_RU = """
             Привет!✋
@@ -86,7 +86,7 @@ public class BotText {
             погоду в любой точке мира.
             Информация, которую предоставляет бот, базируется
             на метеорологических данных которые взяты
-            с сайта openweatherbot.com.
+            с сайта openweathermap.org.
             С любыми дополнительными вопросами
             обращайтесь к автору: @VelorumX 👌
             """;
@@ -161,12 +161,10 @@ public class BotText {
         mapToReturn.put(TextName.SETTINGS_LANGUAGE_ENTRY, settingsLanguageEntry);
         mapToReturn.put(TextName.SETTINGS_LANGUAGE_CHANGE_SUCCESS, settingsLanguageChangeSuccess);
 
-
         return mapToReturn;
     }
 
     public static HashMap<TextName, String> setupLanguageByDefaultLanguageCode(String languageCode) {
-
         return switch (languageCode) {
             case "uk" -> ukrainianTextMap();
             case "ru" -> russianTextMap();
