@@ -30,7 +30,7 @@ public class BotText {
     public static final String WEATHER_IN_ENG = "Weather in ";
     public static final String FORECAST_RAINFALL_PROBABILITY_ENG = " Rainfall probability: ";
     public static final String FORECAST_ENTRY_ENG = "Forecast for ";
-    public static final String FORECAST_TIME_ENG = " at 14:00: ";
+    public static final String FORECAST_TIME_ENG = " at ";
     public static final String FORECAST_UMBRELLA_WARNING_ENG = "%. Better take your umbrella!";
     public static final String SETTINGS_LANGUAGE_ENTRY_ENG = """
             Here you can change bot language.
@@ -65,7 +65,7 @@ public class BotText {
     public static final String WEATHER_IN_UA = "Погода в ";
     public static final String FORECAST_RAINFALL_PROBABILITY_UA = " Імовірність опадів: ";
     public static final String FORECAST_ENTRY_UA = "Прогноз погоди для міста ";
-    public static final String FORECAST_TIME_UA = " на 14:00: ";
+    public static final String FORECAST_TIME_UA = " на ";
     public static final String FORECAST_UMBRELLA_WARNING_UA = "%. Краще захопіть парасольку!";
     public static final String SETTINGS_LANGUAGE_ENTRY_UA = """
             Тут ви можете змінити мову бота.
@@ -99,7 +99,7 @@ public class BotText {
     public static final String WEATHER_IN_RU = "Погода в ";
     public static final String FORECAST_RAINFALL_PROBABILITY_RU = " Вероятность осадков: ";
     public static final String FORECAST_ENTRY_RU = "Прогноз погоды в городе ";
-    public static final String FORECAST_TIME_RU = " на 14:00: ";
+    public static final String FORECAST_TIME_RU = " на ";
     public static final String FORECAST_UMBRELLA_WARNING_RU = "%. Лучше захватите зонтик!";
     public static final String SETTINGS_LANGUAGE_ENTRY_RU = """
             Здесь вы можете изменить язык.

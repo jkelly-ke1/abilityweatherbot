@@ -78,7 +78,7 @@ public class WeatherService {
                     "&appid=" + openWeatherConfig.getToken() + "&units=metric" + "&lang=" + userLanguageCode, WeatherDto.class);
 
             var messageString = String.format("\uD83D\uDCC6 %s \n%s %s °C, %s. \n\uD83D\uDCA7 %s %s%%. \n\uD83D\uDCA8 %s %sm/s\n\n",
-                    converter.dateConverter(weatherDto.getDt(), "dd.MM"),
+                    converter.timestampConverter(weatherDto.getDt(), "dd.MM"),
                     converter.stringToEmojiConverter(weatherDto.getWeatherInfo().get(0).get("main").toString()),
                     decimalFormat.format(weatherDto.getMainInfo().get("temp")),
                     weatherDto.getWeatherInfo().get(0).get("description"),
@@ -128,12 +128,14 @@ public class WeatherService {
                 List<ForecastDetails> forecastDetailsList = forecastDto.getForecastDetailsList();
 
                 var messageStringBuilder = new StringBuilder();
+                var currentLocalTime = System.currentTimeMillis() / 1000L;
 
                 for (ForecastDetails forecastDetails : forecastDetailsList) {
-                    if (converter.dateConverter(forecastDetails.getDt(), "HH:mm").equals("14:00")) {
+                    if (converter.localTimeChecker(currentLocalTime)
+                            .equals(converter.timestampConverter(forecastDetails.getDt(), "HH:mm"))) {
                         messageStringBuilder
                                 .append("\uD83D\uDCC6 ")
-                                .append(converter.dateConverter(forecastDetails.getDt(), "dd.MM"))
+                                .append(converter.timestampConverter(forecastDetails.getDt(), "dd.MM"))
                                 .append("\n")
                                 .append(converter.stringToEmojiConverter(forecastDetails.getWeather().get(0).get("main").toString()))
                                 .append(" ")
@@ -152,6 +154,7 @@ public class WeatherService {
                         message.setChatId(update.getMessage().getChatId().toString());
                         message.setText(text.get(BotText.TextName.FORECAST_ENTRY) + cityName
                                 + text.get(BotText.TextName.FORECAST_TIME)
+                                + converter.localTimeChecker(currentLocalTime) + ":"
                                 + "\n\n" + messageStringBuilder);
 
                     }
