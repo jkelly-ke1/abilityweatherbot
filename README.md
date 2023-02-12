@@ -1,5 +1,5 @@
 # Neat Weather Bot
-This is my very simple Telegram bot realisation. This project based on Spring Boot and [Telegram Bots](https://github.com/rubenlagus/TelegramBots) library.
+This is my very simple Telegram bot realization. This project based on Spring Boot and [Telegram Bots](https://github.com/rubenlagus/TelegramBots) library.
 ## List of key project dependencies
 - Spring Boot 2.7.5
 - Spring Data JPA
